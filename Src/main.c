@@ -36,6 +36,7 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include <math.h>
 #include "main.h"
 #include "stm32f4xx_hal.h"
 
@@ -53,7 +54,8 @@ TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+uint32_t ADCValue[1];
+uint32_t OutputValue = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,7 +71,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+float LevelShifter(float arg, char flag);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -107,7 +109,8 @@ int main(void)
   MX_TIM2_Init();
 
   /* USER CODE BEGIN 2 */
-
+	HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1);
+	HAL_ADC_Start_DMA(&hadc1, ADCValue, sizeof(uint16_t));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -117,7 +120,7 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-
+		
   }
   /* USER CODE END 3 */
 
@@ -348,6 +351,32 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+	float tmp = 0;
+	float tmp2 = 0;
+	//float 
+	
+	tmp = ADCValue[0];
+	tmp2 = LevelShifter(tmp, 'i');
+	tmp = 6 * atan(tmp2);
+	OutputValue = LevelShifter(tmp, 'o');
+	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, OutputValue);
+}
+
+/*
+ *	This maps the [0,3.3] input of the ADC
+ *	to a [-18,18] range for proper arctan
+ *	evaluation.
+ */
+float LevelShifter(float arg, char flag){
+	
+	if(flag == 'i'){
+		return arg * (float)(36/4095) - 18;
+	}else if(flag == 'o'){
+		return floor(((long)arg + 1.570)*(long)(4095 / 3.1415));
+	}
+	return 0;
+}
 
 /* USER CODE END 4 */
 
